@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-alpine
+FROM openjdk:8-jdk-alpine
 MAINTAINER dale.tristram@sprinthive.com
 
 # Export HTTP & Transport
