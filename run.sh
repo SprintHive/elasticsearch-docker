@@ -7,6 +7,7 @@ export K8_STATEFULSET_ID=${HOSTNAME##*-}
 
 # allow for memlock
 ulimit -l unlimited
+rc=$?; if [ $rc != 0 ] ; then exit $rc; fi
 
 # Set a random node name if not set.
 if [ -z "${NODE_NAME}" ]; then
@@ -45,4 +46,4 @@ fi
 chown -R elasticsearch:elasticsearch $BASE
 chown -R elasticsearch:elasticsearch /data
 
-exec tini su-exec elasticsearch $BASE/bin/elasticsearch
+exec tini gosu elasticsearch $BASE/bin/elasticsearch

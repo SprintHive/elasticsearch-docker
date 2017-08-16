@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-alpine
+FROM openjdk:8-jre-slim
 MAINTAINER dale.tristram@sprinthive.com
 
 # Export HTTP & Transport
@@ -10,13 +10,16 @@ ENV DOWNLOAD_URL "https://artifacts.elastic.co/downloads/elasticsearch"
 ENV ES_TARBAL "${DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.tar.gz"
 ENV ES_TARBALL_ASC "${DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.tar.gz.asc"
 ENV GPG_KEY "46095ACC8548582C1A2699A9D27D666CD88E42B4"
+ENV TINI_VERSION v0.15.0
+ENV GOSU_VERSION 1.10
+
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/local/bin/tini
+RUN chmod +x /usr/local/bin/tini
 
 # Install Elasticsearch.
-RUN apk add --no-cache --update bash ca-certificates su-exec util-linux
-RUN apk add --no-cache openssl
-RUN apk add --no-cache tini
-RUN apk add --no-cache -t .build-deps wget gnupg \
-  && cd /tmp \
+RUN apt-get update
+RUN apt-get install -y bash ca-certificates openssl gnupg wget uuid-runtime
+RUN cd /tmp \
   && echo "===> Install Elasticsearch..." \
   && wget -O elasticsearch.tar.gz "$ES_TARBAL"; \
 	if [ "$ES_TARBALL_ASC" ]; then \
@@ -29,7 +32,7 @@ RUN apk add --no-cache -t .build-deps wget gnupg \
   tar -xf elasticsearch.tar.gz \
   && ls -lah \
   && mv elasticsearch-$ES_VERSION /elasticsearch \
-  && adduser -DH -s /sbin/nologin elasticsearch \
+  && adduser --gecos --disabled-password --no-create-home --shell /sbin/nologin elasticsearch \
   && echo "===> Creating Elasticsearch Paths..." \
   && for path in \
   	/elasticsearch/config \
@@ -40,7 +43,23 @@ RUN apk add --no-cache -t .build-deps wget gnupg \
   chown -R elasticsearch:elasticsearch "$path"; \
   done \
   && rm -rf /tmp/* \
-  && apk del --purge .build-deps
+
+# Install Gosu
+RUN set -ex; \
+	dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')"; \
+	wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch"; \
+	wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc"; \
+	\
+# verify the signature
+	export GNUPGHOME="$(mktemp -d)"; \
+	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
+	gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
+	rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc; \
+	\
+	chmod +x /usr/local/bin/gosu
+
+# Remove build-only dependencies
+RUN apt-get remove -y --purge gnupg wget
 
 ENV PATH /elasticsearch/bin:$PATH
 
