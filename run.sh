@@ -24,6 +24,7 @@ if [ ! -z "${ES_PLUGINS_INSTALL}" ]; then
    for plugin in ${ES_PLUGINS_INSTALL}; do
       if ! $BASE/bin/elasticsearch-plugin list | grep -qs ${plugin}; then
          yes | $BASE/bin/elasticsearch-plugin install --batch ${plugin}
+         rc=$?; if [ $rc != 0 ] ; then exit $rc; fi
       fi
    done
    IFS=$OLDIFS
