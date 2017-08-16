@@ -4,7 +4,7 @@ MAINTAINER dale.tristram@sprinthive.com
 # Export HTTP & Transport
 EXPOSE 9200 9300
 
-ENV ES_VERSION 5.4.1
+ENV ES_VERSION 5.5.1
 
 ENV DOWNLOAD_URL "https://artifacts.elastic.co/downloads/elasticsearch"
 ENV ES_TARBAL "${DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.tar.gz"
